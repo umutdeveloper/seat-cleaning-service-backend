@@ -1,6 +1,9 @@
+import { AdminModule } from './modules/admin/admin.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { VehicleModule } from './modules/vehicle/vehicle.module';
 import { ServiceTypeModule } from './modules/service-type/service-type.module';
 import { ServicePersonnelModule } from './modules/service-personnel/service-personnel.module';
@@ -11,9 +14,12 @@ import { LoyaltyProgramModule } from './modules/loyalty-program/loyalty-program.
 import { DriverModule } from './modules/driver/driver.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { BusinessModule } from './modules/business/business.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
+    AdminModule,
     VehicleModule,
     ServiceTypeModule,
     ServicePersonnelModule,
@@ -25,6 +31,10 @@ import { BusinessModule } from './modules/business/business.module';
     CustomerModule,
     BusinessModule,
     ConfigModule.forRoot(),
+    ThrottlerModule.forRoot({
+      ttl: 60,
+      limit: 10,
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -35,6 +45,14 @@ import { BusinessModule } from './modules/business/business.module';
       autoLoadEntities: true,
       synchronize: true,
     }),
+  ],
+  controllers: [AppController],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
