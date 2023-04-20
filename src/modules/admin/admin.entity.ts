@@ -1,17 +1,12 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, OneToOne } from 'typeorm';
 import { Base } from 'src/utils/base.entity';
+import { User } from '../user/user.entity';
 
 @Entity()
 export class Admin extends Base {
-  @Column({ unique: true })
-  username: string;
-
-  @Column()
-  password: string;
-
   @Column()
   name: string;
 
-  @Column({ default: true })
-  isActive: boolean;
+  @OneToOne(() => User, (user) => user.admin)
+  user: User;
 }
