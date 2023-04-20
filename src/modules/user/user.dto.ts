@@ -7,3 +7,9 @@ export class CreateUserDto {
   role: Role;
   admin?: CreateAdminDto;
 }
+
+export class FindUserDto {
+  username: string;
+  password: string;
+  role?: Role;
+}

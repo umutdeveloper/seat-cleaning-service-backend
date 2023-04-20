@@ -1,12 +1,12 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BaseService } from 'src/utils/base.service';
 import { User } from './user.entity';
 import { Role } from './user.enum';
 import { AdminService } from '../admin/admin.service';
-import { CreateUserDto } from './user.dto';
+import { CreateUserDto, FindUserDto } from './user.dto';
 
 @Injectable()
 export class UserService extends BaseService<User> {
@@ -43,12 +43,21 @@ export class UserService extends BaseService<User> {
     return super.create(user);
   }
 
-  async findOne(entity: FindOptionsWhere<User>): Promise<User> {
-    const user = await super.findOne({ username: entity.username });
+  async findOne(entity: FindUserDto): Promise<User> {
+    const role = entity.role;
+    const user = await super.findOne(
+      { username: entity.username },
+      {
+        admin: role === Role.Admin,
+        driver: role === Role.Driver,
+        servicePersonnel: role === Role.ServicePersonnel,
+        customer: role === Role.Customer,
+      },
+    );
     if (!user) throw new UnauthorizedException();
 
     const isPasswordValid = await bcrypt.compare(
-      entity.password as string,
+      entity.password,
       user.password,
     );
     if (!isPasswordValid) throw new UnauthorizedException();

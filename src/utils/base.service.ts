@@ -1,4 +1,9 @@
-import { FindManyOptions, FindOptionsWhere, Repository } from 'typeorm';
+import {
+  FindManyOptions,
+  FindOptionsRelations,
+  FindOptionsWhere,
+  Repository,
+} from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { Base } from './base.entity';
 
@@ -13,8 +18,11 @@ export class BaseService<T extends Base> {
     return this.repository.save(entity);
   }
 
-  async findOne(entity: FindOptionsWhere<T>): Promise<T> {
-    return this.repository.findOneBy(entity);
+  async findOne(
+    entity: FindOptionsWhere<T>,
+    relations?: FindOptionsRelations<T>,
+  ): Promise<T> {
+    return this.repository.findOne({ where: entity, relations });
   }
 
   async find(entity: FindManyOptions<T>): Promise<T[]> {
