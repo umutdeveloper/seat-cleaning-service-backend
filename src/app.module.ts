@@ -1,51 +1,53 @@
+import { AuthModule } from './auth/auth.module';
+import { CoreModule } from './core/core.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-import { AdminModule } from './modules/admin/admin.module';
-import { UserModule } from './modules/user/user.module';
-import { VehicleModule } from './modules/vehicle/vehicle.module';
-import { ServiceTypeModule } from './modules/service-type/service-type.module';
-import { ServicePersonnelModule } from './modules/service-personnel/service-personnel.module';
-import { ReservationModule } from './modules/reservation/reservation.module';
-import { RedemptionModule } from './modules/redemption/redemption.module';
-import { PromotionModule } from './modules/promotion/promotion.module';
-import { LoyaltyProgramModule } from './modules/loyalty-program/loyalty-program.module';
-import { DriverModule } from './modules/driver/driver.module';
-import { CustomerModule } from './modules/customer/customer.module';
-import { BusinessModule } from './modules/business/business.module';
+import { AutomapperModule } from '@automapper/nestjs';
+import { classes } from '@automapper/classes';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { databaseConfig, jwtConfig } from './config/env.config';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
-    AdminModule,
-    UserModule,
-    VehicleModule,
-    ServiceTypeModule,
-    ServicePersonnelModule,
-    ReservationModule,
-    RedemptionModule,
-    PromotionModule,
-    LoyaltyProgramModule,
-    DriverModule,
-    CustomerModule,
-    BusinessModule,
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      load: [databaseConfig, jwtConfig],
+    }),
+    CoreModule,
+    AuthModule,
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT, 10),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
-      autoLoadEntities: true,
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('database.host'),
+        port: configService.get<number>('database.port'),
+        username: configService.get<string>('database.username'),
+        password: configService.get<string>('database.password'),
+        database: configService.get<string>('database.database'),
+        autoLoadEntities: true,
+        synchronize: true,
+      }),
+      inject: [ConfigService],
+    }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('jwt.secret'),
+        signOptions: { expiresIn: configService.get<string>('jwt.expiresIn') },
+      }),
+      inject: [ConfigService],
+      global: true,
+    }),
+    AutomapperModule.forRoot({
+      strategyInitializer: classes(),
     }),
   ],
   controllers: [AppController],
